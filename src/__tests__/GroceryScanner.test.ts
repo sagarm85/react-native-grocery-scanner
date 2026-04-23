@@ -40,6 +40,7 @@ describe('GroceryScanner', () => {
   });
 
   it('throws LOW_CONFIDENCE when min item confidence is below threshold', async () => {
+    expect.assertions(4); // one per expect in catch block
     const provider = makeProvider({
       items: [
         { nameDevanagari: 'चावल', nameEnglish: 'Rice', quantity: 1, unit: 'kg', category: 'grains', confidence: 0.80 },
@@ -48,7 +49,6 @@ describe('GroceryScanner', () => {
     const scanner = new GroceryScanner({ ...baseConfig, provider });
     try {
       await scanner.scan('file:///photo.jpg');
-      fail('expected ScanError');
     } catch (e) {
       expect(e).toBeInstanceOf(ScanError);
       expect((e as ScanError).code).toBe('LOW_CONFIDENCE');
@@ -58,10 +58,10 @@ describe('GroceryScanner', () => {
   });
 
   it('throws UNSUPPORTED_FORMAT for unsupported file extension', async () => {
+    expect.assertions(2); // one per expect in catch block
     const scanner = new GroceryScanner({ ...baseConfig, provider: makeProvider() });
     try {
       await scanner.scan('file:///photo.gif');
-      fail('expected ScanError');
     } catch (e) {
       expect(e).toBeInstanceOf(ScanError);
       expect((e as ScanError).code).toBe('UNSUPPORTED_FORMAT');
@@ -86,6 +86,25 @@ describe('GroceryScanner', () => {
     expect(
       () => new GroceryScanner({ ...baseConfig, provider: 'claude' }),
     ).toThrow('apiKey is required when using the claude provider');
+  });
+
+  it('scanPdf passes application/pdf and returns GroceryList', async () => {
+    const provider = makeProvider();
+    const scanner = new GroceryScanner({ ...baseConfig, provider });
+    const result = await scanner.scanPdf('file:///list.pdf');
+    expect(result.items).toHaveLength(1);
+    expect(provider.scan).toHaveBeenCalledWith('base64data', 'application/pdf', expect.any(Object));
+  });
+
+  it('scanPdf throws UNSUPPORTED_FORMAT for non-PDF URI', async () => {
+    expect.assertions(2);
+    const scanner = new GroceryScanner({ ...baseConfig, provider: makeProvider() });
+    try {
+      await scanner.scanPdf('file:///photo.jpg');
+    } catch (e) {
+      expect(e).toBeInstanceOf(ScanError);
+      expect((e as ScanError).code).toBe('UNSUPPORTED_FORMAT');
+    }
   });
 
   it('accepts a custom GroceryProvider instance', async () => {

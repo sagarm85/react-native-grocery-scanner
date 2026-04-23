@@ -26,7 +26,7 @@ Respond with ONLY valid JSON in this exact format, no other text:
     }
   ],
   "rawText": "all text visible in the image, exactly as written",
-  "scanQuality": "good or degraded"
+  "scanQuality": "good"
 }
 
 Rules:

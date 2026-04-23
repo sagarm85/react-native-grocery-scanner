@@ -3,7 +3,7 @@ import { ScanError } from '../ScanError';
 import { buildPrompt } from '../prompt';
 import type { GroceryProvider, ProviderResult, RawItem, ScanConfig } from '../types';
 
-type ImageMediaType = Anthropic.ImageBlockParam.Source['media_type'];
+type ImageMediaType = 'image/jpeg' | 'image/png' | 'image/gif' | 'image/webp';
 
 export class ClaudeProvider implements GroceryProvider {
   name = 'claude';
@@ -48,10 +48,8 @@ export class ClaudeProvider implements GroceryProvider {
 
   private pdfContent(base64: string, prompt: string): Anthropic.MessageParam['content'] {
     return [
-      {
-        type: 'document',
-        source: { type: 'base64', media_type: 'application/pdf', data: base64 },
-      } as unknown as Anthropic.ImageBlockParam,
+      // Claude API supports PDF documents; SDK types may lag behind API capabilities
+      { type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: base64 } } as any,
       { type: 'text', text: prompt },
     ];
   }

@@ -71,13 +71,13 @@ describe('ClaudeProvider', () => {
   });
 
   it('throws PROVIDER_ERROR when API call fails', async () => {
+    expect.assertions(2); // one per expect in catch block
     const mockCreate = jest.fn().mockRejectedValue(new Error('Network error'));
     MockedAnthropic.mockImplementation(
       () => ({ messages: { create: mockCreate } }) as unknown as Anthropic,
     );
     try {
       await new ClaudeProvider('sk-ant-test').scan('base64img', 'image/jpeg', config);
-      fail('expected ScanError');
     } catch (e) {
       expect(e).toBeInstanceOf(ScanError);
       expect((e as ScanError).code).toBe('PROVIDER_ERROR');
@@ -85,10 +85,10 @@ describe('ClaudeProvider', () => {
   });
 
   it('throws PROVIDER_ERROR when Claude returns invalid JSON', async () => {
+    expect.assertions(2); // one per expect in catch block
     setupMock('Sorry, I cannot read this image.');
     try {
       await new ClaudeProvider('sk-ant-test').scan('base64img', 'image/jpeg', config);
-      fail('expected ScanError');
     } catch (e) {
       expect(e).toBeInstanceOf(ScanError);
       expect((e as ScanError).code).toBe('PROVIDER_ERROR');

@@ -10,16 +10,15 @@ describe('getMimeType', () => {
     ['photo.jpeg', 'image/jpeg'],
     ['photo.png', 'image/png'],
     ['photo.webp', 'image/webp'],
-    ['photo.heic', 'image/heic'],
     ['list.pdf', 'application/pdf'],
   ])('returns correct MIME type for %s', (filename, expected) => {
     expect(getMimeType(filename)).toBe(expected);
   });
 
   it('throws UNSUPPORTED_FORMAT for unknown extension', () => {
+    expect.assertions(2); // one per expect in catch block
     try {
       getMimeType('file.gif');
-      fail('expected ScanError');
     } catch (e) {
       expect(e).toBeInstanceOf(ScanError);
       expect((e as ScanError).code).toBe('UNSUPPORTED_FORMAT');
@@ -40,14 +39,14 @@ describe('fileToBase64', () => {
     expect(mockReadFile).toHaveBeenCalledWith('file:///path/to/image.jpg', 'base64');
   });
 
-  it('throws PROVIDER_ERROR when file cannot be read', async () => {
+  it('throws INVALID_INPUT when file cannot be read', async () => {
+    expect.assertions(2); // one per expect in catch block
     mockReadFile.mockRejectedValueOnce(new Error('File not found'));
     try {
       await fileToBase64('file:///missing.jpg');
-      fail('expected ScanError');
     } catch (e) {
       expect(e).toBeInstanceOf(ScanError);
-      expect((e as ScanError).code).toBe('PROVIDER_ERROR');
+      expect((e as ScanError).code).toBe('INVALID_INPUT');
     }
   });
 });

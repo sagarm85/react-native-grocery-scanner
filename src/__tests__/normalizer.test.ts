@@ -51,10 +51,10 @@ describe('normalize', () => {
   });
 
   it('throws INVALID_INPUT when items is empty and rawText is empty', () => {
+    expect.assertions(2); // one per expect in catch block
     const empty: ProviderResult = { items: [], rawText: '', scanQuality: 'good' };
     try {
       normalize(empty, config);
-      fail('expected ScanError to be thrown');
     } catch (e) {
       expect(e).toBeInstanceOf(ScanError);
       expect((e as ScanError).code).toBe('INVALID_INPUT');
