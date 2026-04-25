@@ -13,6 +13,7 @@ export interface GroceryItem {
   unit: string;
   category: string;
   confidence: number;
+  day?: string;
 }
 
 export interface GroceryList {
@@ -28,6 +29,7 @@ export interface RawItem {
   unit: string;
   category: string;
   confidence: number;
+  day?: string;
 }
 
 export interface ProviderResult {
