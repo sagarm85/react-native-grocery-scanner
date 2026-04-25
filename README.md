@@ -2,6 +2,8 @@
 
 A React Native library for scanning handwritten Devanagari grocery lists using AI vision. Supports multiple AI providers (Claude, Gemini, Groq) and outputs structured item data with optional English translations.
 
+![Handwritten Devanagari grocery list sample](docs/images/handwritten_sample1.png)
+
 ## Features
 
 - Reads handwritten grocery lists in Devanagari script from photos or PDFs
@@ -11,6 +13,7 @@ A React Native library for scanning handwritten Devanagari grocery lists using A
 - Output in Devanagari, English, or both
 - Configurable confidence threshold — throws on low-quality scans
 - Pluggable provider interface: ship your own AI backend
+- Chained provider: automatically refines low-confidence or transliterated items using a second model
 
 ## Installation
 
@@ -81,6 +84,25 @@ interface GroceryItem {
 }
 ```
 
+When using `ChainedProvider`, `ProviderResult.chainLog` contains a full audit trail:
+
+```ts
+interface ChainLog {
+  timestamp: string;
+  primaryProvider: string;
+  refinerProvider: string;
+  items: ItemAudit[];
+}
+
+interface ItemAudit {
+  nameEnglish: string;
+  primary: { nameDevanagari: string; confidence: number };
+  refinementTrigger: 'low_confidence' | 'transliteration' | null;
+  refined: { nameDevanagari: string; confidence: number } | null;
+  final: { nameDevanagari: string; confidence: number };
+}
+```
+
 ## Error handling
 
 ```ts
@@ -138,6 +160,28 @@ import { GroqProvider } from 'react-native-grocery-scanner/providers';
 { provider: new GroqProvider('gsk_...') }
 ```
 
+### ChainedProvider
+
+Runs a primary provider for OCR, then automatically sends low-confidence or transliterated items to a refiner (a second `RefinementProvider`) for correction. Each scan result includes a `chainLog` with a per-item audit trail.
+
+```ts
+import { ChainedProvider } from 'react-native-grocery-scanner/providers';
+import { ClaudeProvider } from 'react-native-grocery-scanner/providers';
+
+const provider = new ChainedProvider({
+  primary: new ClaudeProvider(process.env.ANTHROPIC_API_KEY),
+  refiner: new ClaudeProvider(process.env.ANTHROPIC_API_KEY), // or any RefinementProvider
+  refinementThreshold: 0.8, // items below this confidence are sent to the refiner
+});
+
+const scanner = new GroceryScanner({ provider, outputLanguage: 'both', confidenceThreshold: 0.5, categories: [...] });
+const list = await scanner.scan(imageUri);
+// list.items → refined GroceryItem[]
+// result.chainLog → ChainLog with per-item audit (primary, trigger, refined, final)
+```
+
+Refinement is also triggered when a Devanagari name appears to be a phonetic transliteration of the English name (e.g. `केपसीकम` for "capsicum") rather than the correct Hindi vocabulary term.
+
 ### Custom provider
 
 Implement the `GroceryProvider` interface to use any vision model:
@@ -154,6 +198,20 @@ class MyProvider implements GroceryProvider {
 }
 
 const scanner = new GroceryScanner({ provider: new MyProvider(), ... });
+```
+
+### Custom refinement provider
+
+Implement `RefinementProvider` to supply a second-pass corrector for `ChainedProvider`:
+
+```ts
+import type { RefinementProvider, RawItem, ScanConfig } from 'react-native-grocery-scanner';
+
+class MyRefiner implements RefinementProvider {
+  async refine(rawText: string, items: RawItem[], config: ScanConfig): Promise<RawItem[]> {
+    // re-interpret flagged items using rawText context; return corrected items in the same order
+  }
+}
 ```
 
 ## Example app

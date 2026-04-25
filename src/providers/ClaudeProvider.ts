@@ -1,11 +1,11 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { ScanError } from '../ScanError';
-import { buildPrompt } from '../prompt';
-import type { GroceryProvider, ProviderResult, RawItem, ScanConfig } from '../types';
+import { buildPrompt, buildRefinementPrompt } from '../prompt';
+import type { GroceryProvider, ProviderResult, RawItem, RefinementProvider, ScanConfig } from '../types';
 
 type ImageMediaType = 'image/jpeg' | 'image/png' | 'image/gif' | 'image/webp';
 
-export class ClaudeProvider implements GroceryProvider {
+export class ClaudeProvider implements GroceryProvider, RefinementProvider {
   name = 'claude';
   private client: Anthropic;
 
@@ -33,6 +33,27 @@ export class ClaudeProvider implements GroceryProvider {
     }
 
     return this.parseResponse(responseText);
+  }
+
+  async refine(rawText: string, items: RawItem[], config: ScanConfig): Promise<RawItem[]> {
+    const prompt = buildRefinementPrompt(rawText, items, config);
+    let responseText: string;
+    try {
+      const response = await this.client.messages.create({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 1024,
+        messages: [{ role: 'user', content: prompt }],
+      });
+      responseText = response.content.find((c) => c.type === 'text')?.text ?? '';
+    } catch (e) {
+      throw new ScanError('PROVIDER_ERROR', `Claude API error: ${(e as Error).message}`);
+    }
+    const clean = responseText.replace(/^```(?:json)?\n?([\s\S]*?)\n?```$/m, '$1').trim();
+    try {
+      return JSON.parse(clean) as RawItem[];
+    } catch {
+      throw new ScanError('PROVIDER_ERROR', 'Claude returned invalid JSON for refinement');
+    }
   }
 
   private imageContent(
