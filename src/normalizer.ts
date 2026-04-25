@@ -27,6 +27,9 @@ function mapItem(raw: RawItem, config: ScanConfig): GroceryItem {
   if (config.outputLanguage === 'english' || config.outputLanguage === 'both') {
     item.nameEnglish = raw.nameEnglish;
   }
+  if (raw.day) {
+    item.day = raw.day;
+  }
 
   return item;
 }

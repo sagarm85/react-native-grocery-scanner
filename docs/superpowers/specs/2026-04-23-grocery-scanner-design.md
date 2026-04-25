@@ -70,6 +70,8 @@ const result = await scanner.scan(imageUri);     // image URI from camera/file p
 const result = await scanner.scanPdf(pdfUri);    // PDF URI, scanned page by page
 ```
 
+Supported image formats: JPEG, PNG, WebP, HEIC. PDF must be single or multi-page with at least one handwritten page.
+
 ### Output Types
 
 ```typescript
@@ -132,10 +134,10 @@ interface GroceryProvider {
 }
 
 interface ProviderResult {
-  items: RawItem[];       // un-normalized items as returned by AI
-  confidence: number;     // overall scan confidence 0.0–1.0
+  items: RawItem[];       // un-normalized items as returned by AI; each item carries its own confidence score
   rawText: string;
 }
+// The SDK derives the overall confidence as min(items[i].confidence) for the threshold check.
 ```
 
 Custom provider example:
