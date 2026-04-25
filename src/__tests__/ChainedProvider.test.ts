@@ -109,6 +109,38 @@ describe('ChainedProvider', () => {
     }
   });
 
+  it('sends high-confidence items to refiner when nameDevanagari is a transliteration', async () => {
+    const transliteratedItem: RawItem = {
+      nameDevanagari: 'केपसीकम', nameEnglish: 'Capsicum', quantity: 1, unit: 'piece', category: 'vegetables', confidence: 0.85,
+    };
+    const corrected: RawItem = {
+      nameDevanagari: 'शिमला मिर्च', nameEnglish: 'Capsicum', quantity: 1, unit: 'piece', category: 'vegetables', confidence: 0.95,
+    };
+    const refiner = makeRefiner([corrected]);
+    const provider = new ChainedProvider({
+      primary: makePrimary([transliteratedItem]),
+      refiner,
+      refinementThreshold: 0.8,
+    });
+    const result = await provider.scan('base64', 'image/jpeg', config);
+    expect(refiner.refine).toHaveBeenCalledWith('test raw text', [transliteratedItem], config);
+    expect(result.items[0].nameDevanagari).toBe('शिमला मिर्च');
+  });
+
+  it('does not send to refiner when nameDevanagari is correct native Hindi', async () => {
+    const nativeItem: RawItem = {
+      nameDevanagari: 'हरी शिमला मिर्च', nameEnglish: 'Green Capsicum', quantity: 1, unit: 'piece', category: 'vegetables', confidence: 0.9,
+    };
+    const refiner = makeRefiner([]);
+    const provider = new ChainedProvider({
+      primary: makePrimary([nativeItem]),
+      refiner,
+      refinementThreshold: 0.8,
+    });
+    await provider.scan('base64', 'image/jpeg', config);
+    expect(refiner.refine).not.toHaveBeenCalled();
+  });
+
   it('propagates primary error without calling refiner', async () => {
     expect.assertions(3);
     const primary: GroceryProvider = {

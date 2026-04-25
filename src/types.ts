@@ -32,10 +32,26 @@ export interface RawItem {
   day?: string;
 }
 
+export interface ItemAudit {
+  nameEnglish: string;
+  primary: { nameDevanagari: string; confidence: number };
+  refinementTrigger: 'low_confidence' | 'transliteration' | null;
+  refined: { nameDevanagari: string; confidence: number } | null;
+  final: { nameDevanagari: string; confidence: number };
+}
+
+export interface ChainLog {
+  timestamp: string;
+  primaryProvider: string;
+  refinerProvider: string;
+  items: ItemAudit[];
+}
+
 export interface ProviderResult {
   items: RawItem[];
   rawText: string;
   scanQuality: 'good' | 'degraded';
+  chainLog?: ChainLog;
 }
 
 export interface ScanConfig {
