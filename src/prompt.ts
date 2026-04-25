@@ -1,4 +1,4 @@
-import type { ScanConfig } from './types';
+import type { RawItem, ScanConfig } from './types';
 
 export function buildPrompt(config: ScanConfig): string {
   return `You are an expert at reading handwritten Indian grocery lists written in Devanagari script.
@@ -44,4 +44,35 @@ Rules:
 - Use confidence below 0.5 for items that are very hard to read
 - If no grocery items are visible, return an empty items array with relevant rawText
 - If the image is entirely blank, return: { "items": [], "rawText": "", "scanQuality": "good" }`;
+}
+
+export function buildRefinementPrompt(rawText: string, items: RawItem[], config: ScanConfig): string {
+  return `You are correcting specific items from a handwritten Devanagari grocery list.
+
+The full text extracted from the image is:
+"${rawText}"
+
+The following items were read with low confidence and need correction.
+Using the raw text above as context, correct each item.
+
+Items to correct:
+${JSON.stringify(items, null, 2)}
+
+Return ONLY a JSON array of the same length as the input, in the same order.
+Each element must follow this exact schema:
+{
+  "nameDevanagari": "string (correct standard Hindi name in Devanagari script)",
+  "nameEnglish": "string (English name in Latin script)",
+  "quantity": number,
+  "unit": "string (one of: kg, g, litre, ml, packet, piece, dozen, bunch, box, bottle, can, other)",
+  "category": "string (one of: ${config.categories.join(', ')})",
+  "confidence": number (0.0 to 1.0),
+  "day": "string (optional — only if item appeared under a day-of-week heading)"
+}
+
+Rules:
+- nameDevanagari must be correct standard Hindi — never copy phonetic transliterations from the image
+- nameEnglish must always be in Latin script
+- confidence should reflect your certainty in the correction
+- Return ONLY the JSON array with no other text`;
 }

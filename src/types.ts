@@ -53,3 +53,7 @@ export interface ScannerConfig extends ScanConfig {
   provider: 'claude' | GroceryProvider;
   apiKey?: string;
 }
+
+export interface RefinementProvider {
+  refine(rawText: string, items: RawItem[], config: ScanConfig): Promise<RawItem[]>;
+}
